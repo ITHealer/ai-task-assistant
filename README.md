@@ -8,6 +8,7 @@
 - notebooks - Interactive exploration and analysis
 
 ## Structure Folders
+```
 src/
 ├── core/                # Global configuration, logging, security, non-domain helpers
 ├── api/                 # Presentation layer: routers, deps, middleware, schema adapters
@@ -21,7 +22,7 @@ src/
 ├── workers/             # Celery/RQ jobs (async jobs, scheduled tasks)
 ├── infrastructure/      # Kết nối DB, Redis, vectorstore, external APIs
 └── utils/               # Extremely small general helper (telemetry, small string utils)
-
+```
 
 ## Getting Started
 1. Clone the repo 
