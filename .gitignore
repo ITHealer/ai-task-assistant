@@ -173,3 +173,6 @@ mlruns/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+alembic.ini
+/alembic/

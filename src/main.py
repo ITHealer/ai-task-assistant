@@ -7,7 +7,6 @@ from src.core.config import settings
 from src.core.logging import get_logger
 from src.api.v1.router import api_router
 from src.api.middleware.error_handler import ErrorHandlerMiddleware
-from src.api.middleware.rate_limiter import RateLimiterMiddleware
 from src.infrastructure.database.postgres_client import init_db
 
 logger = get_logger(__name__)
@@ -18,7 +17,11 @@ async def lifespan(app: FastAPI):
     """Handle application lifecycle"""
     # Startup
     logger.info("Starting up Task Assistant API...")
-    init_db()
+    try:
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
     yield
     # Shutdown
     logger.info("Shutting down Task Assistant API...")
@@ -37,12 +40,10 @@ app = FastAPI(
 # Add middlewares
 app.add_middleware(ErrorHandlerMiddleware)
 
-if settings.RATE_LIMIT_ENABLED:
-    app.add_middleware(RateLimiterMiddleware)
-
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["chrome-extension://*", "http://localhost:3000", "*"],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

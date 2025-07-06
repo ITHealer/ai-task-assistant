@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
+    container_name: task_assistant_db
     environment:
       POSTGRES_USER: taskuser
       POSTGRES_PASSWORD: taskpass
@@ -11,45 +10,80 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U taskuser"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U taskuser -d task_assistant"]
+      interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - task_assistant_network
 
   redis:
     image: redis:7-alpine
+    container_name: task_assistant_redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - task_assistant_network
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task_assistant_api
     ports:
       - "8000:8000"
     environment:
+      ENVIRONMENT: development
       DATABASE_URL: postgresql://taskuser:taskpass@postgres:5432/task_assistant
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: task_assistant
+      DB_USER: taskuser
+      DB_PASSWORD: taskpass
       REDIS_URL: redis://redis:6379
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./alembic:/app/alembic
       - ./logs:/app/logs
       - ./data:/app/data
+    networks:
+      - task_assistant_network
     command: >
       sh -c "
-        alembic upgrade head &&
+        echo 'Waiting for database...' &&
+        sleep 5 &&
+        if [ ! -d '/app/alembic/versions' ]; then
+          echo 'Initializing alembic...';
+          alembic init alembic || true;
+        fi &&
+        echo 'Checking database connection...' &&
+        python -c 'from src.infrastructure.database.postgres_client import engine; engine.connect().close(); print(\"Database connected!\")' &&
+        echo 'Running migrations...' &&
+        alembic upgrade head || echo 'No migrations to run' &&
+        echo 'Starting application...' &&
         uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
       "
+
+networks:
+  task_assistant_network:
+    driver: bridge
 
 volumes:
   postgres_data:

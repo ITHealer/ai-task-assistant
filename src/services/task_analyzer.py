@@ -1,8 +1,10 @@
 from typing import Dict, List, Optional
 import json
+from openai import OpenAI, RateLimitError, APIError
 from src.schemas.task import TaskCreate, TaskStepCreate, TextInput
 from src.infrastructure.llm.providers.openai_client import OpenAIClient
 from src.core.logging import get_logger
+from src.core.exceptions import AppException
 
 logger = get_logger(__name__)
 
@@ -46,9 +48,24 @@ class TaskAnalyzerService:
                 steps=steps
             )
             
+        except RateLimitError as e:
+            logger.error(f"OpenAI rate limit error: {str(e)}")
+            # Use fallback when rate limited
+            logger.info("Using fallback task creation due to rate limit")
+            return self._create_fallback_task(text_input.text)
+            
+        except APIError as e:
+            logger.error(f"OpenAI API error: {str(e)}")
+            if "insufficient_quota" in str(e):
+                raise AppException(
+                    message="OpenAI API quota exceeded. Please check your billing.",
+                    error_code="OPENAI_QUOTA_EXCEEDED",
+                    status_code=503
+                )
+            return self._create_fallback_task(text_input.text)
+            
         except Exception as e:
             logger.error(f"Error analyzing text: {str(e)}")
-            # Fallback to simple task creation
             return self._create_fallback_task(text_input.text)
     
     def _get_system_message(self) -> str:
@@ -65,14 +82,6 @@ class TaskAnalyzerService:
                 {"description": "Step 2 description"}
             ]
         }
-        
-        Guidelines:
-        - Extract clear, actionable tasks from conversational text
-        - Break down complex tasks into steps
-        - Infer priority from keywords like "urgent", "ASAP", "when you can"
-        - Categorize based on context clues
-        - Keep titles concise and action-oriented
-        - Each step should be independently actionable
         """
     
     def _build_analysis_prompt(self, text: str, context: Optional[str]) -> str:
@@ -83,12 +92,38 @@ class TaskAnalyzerService:
     
     def _create_fallback_task(self, text: str) -> TaskCreate:
         """Create a simple task when LLM analysis fails"""
-        title = text[:50] + "..." if len(text) > 50 else text
+        # Smart fallback - try to extract meaningful title
+        lines = text.strip().split('\n')
+        first_line = lines[0] if lines else text
+        
+        # Truncate for title
+        title = first_line[:50]
+        if len(first_line) > 50:
+            title = first_line[:47] + "..."
+        
+        # Try to identify priority from keywords
+        priority = "medium"
+        urgent_keywords = ["urgent", "asap", "immediately", "critical", "important"]
+        if any(keyword in text.lower() for keyword in urgent_keywords):
+            priority = "high"
+        
+        # Try to categorize
+        category = "general"
+        if any(word in text.lower() for word in ["meeting", "call", "discuss"]):
+            category = "meeting"
+        elif any(word in text.lower() for word in ["review", "analyze", "report"]):
+            category = "work"
+        
         return TaskCreate(
             title=title,
             description=text,
-            priority="medium",
-            category="general",
+            priority=priority,
+            category=category,
             source_text=text,
-            steps=[]
+            steps=[
+                TaskStepCreate(
+                    description="Review and complete this task",
+                    order_index=0
+                )
+            ]
         )

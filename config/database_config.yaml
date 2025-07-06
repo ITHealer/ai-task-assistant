@@ -1,0 +1,41 @@
+default: &default
+  engine: postgresql
+  driver: psycopg2
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:5432}
+  database: ${DB_NAME:task_assistant}
+  username: ${DB_USER:taskuser}
+  password: ${DB_PASSWORD:taskpass}
+  
+  # Connection pool settings
+  pool_size: 10
+  max_overflow: 20
+  pool_pre_ping: true
+  pool_recycle: 3600
+  
+  # Query settings
+  echo: false
+  echo_pool: false
+  
+development:
+  <<: *default
+  database: ${DB_NAME:task_assistant_dev}
+  echo: true
+  
+testing:
+  <<: *default
+  database: ${DB_NAME:task_assistant_test}
+  echo: false
+  
+staging:
+  <<: *default
+  database: ${DB_NAME:task_assistant_staging}
+  pool_size: 20
+  max_overflow: 40
+  
+production:
+  <<: *default
+  database: ${DB_NAME:task_assistant_prod}
+  pool_size: 50
+  max_overflow: 100
+  echo: false
