@@ -12,7 +12,7 @@ from src.core.security import verify_token
 # Security scheme
 security = HTTPBearer(auto_error=False)
 
-
+#
 def get_db() -> Generator:
     """
     Database dependency

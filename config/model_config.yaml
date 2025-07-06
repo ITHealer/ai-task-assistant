@@ -1,5 +1,6 @@
+# OpenAI model config
 openai:
-  default_model: gpt-4o-mini
+  default_model: gpt-4.1-nano-2025-04-14
   models:
     - name: gpt-4o-mini
       max_tokens: 16384
@@ -9,11 +10,12 @@ openai:
       max_tokens: 128000
       cost_per_1k_input: 0.0025
       cost_per_1k_output: 0.01
-    - name: gpt-3.5-turbo
+    - name: gpt-4.1-nano-2025-04-14
       max_tokens: 16384
       cost_per_1k_input: 0.0005
       cost_per_1k_output: 0.0015
 
+# Embeddings model config
 embeddings:
   default_model: text-embedding-3-small
   models:
@@ -24,12 +26,10 @@ embeddings:
       dimensions: 3072
       cost_per_1k_tokens: 0.00013
 
+# Ollama + Local models
 local_models:
-  default_model: llama2
+  default_model: llama3.1:8b
   models:
-    - name: llama2
-      path: models/llama2
+    - name: llama3.1:8b
+      path: models/llama3.1:8b
       max_tokens: 4096
-    - name: mistral
-      path: models/mistral
-      max_tokens: 8192

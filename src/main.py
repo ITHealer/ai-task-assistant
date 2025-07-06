@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
+# Filter the Host header of the request, allowing only hostnames defined (e.g. example.com, localhost)
+from fastapi.middleware.trustedhost import TrustedHostMiddleware 
 from contextlib import asynccontextmanager
 
 from src.core.config import settings
@@ -11,18 +13,20 @@ from src.infrastructure.database.postgres_client import init_db
 
 logger = get_logger(__name__)
 
-
+# Lifecycle hooks (startup/shutdown)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle application lifecycle"""
     # Startup
     logger.info("Starting up Task Assistant API...")
+
     try:
         init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
-    yield
+    yield # Where the application starts running.
+
     # Shutdown
     logger.info("Shutting down Task Assistant API...")
 

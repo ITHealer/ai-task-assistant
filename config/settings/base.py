@@ -1,4 +1,3 @@
-"""Base settings for all environments"""
 import os
 from pathlib import Path
 from typing import List, Dict, Any
@@ -42,11 +41,11 @@ except Exception as e:
     print(f"Warning: Could not load model_config.yaml: {e}")
     MODEL_CONFIG = {}
 
-try:
-    PROMPT_TEMPLATES = load_yaml_config("prompt_templates.yaml")
-except Exception as e:
-    print(f"Warning: Could not load prompt_templates.yaml: {e}")
-    PROMPT_TEMPLATES = {}
+# try:
+#     PROMPT_TEMPLATES = load_yaml_config("prompt_templates.yaml")
+# except Exception as e:
+#     print(f"Warning: Could not load prompt_templates.yaml: {e}")
+#     PROMPT_TEMPLATES = {}
 
 try:
     LOGGING_CONFIG = load_yaml_config("logging_config.yaml")
